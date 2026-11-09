@@ -5,13 +5,13 @@
 </div>
 
 # Fork Notice
-This is a fork of [NRTnarathip/SMAPILoader](https://github.com/NRTnarathip/SMAPILoader). I am not affiliated with the original author.
+This is a fork of [NRTnarathip/SMAPILoader](https://github.com/NRTnarathip/SMAPILoader). I am not affiliated with the original author or with the owners of the official SMAPI Thailand discord server.
 
 I removed the unnecessary Play Store split-APK check because it rejected my game installed outside the Play Store via Aurora Store with microG. 
 
 The launcher now accepts the game package when installed and falls back to the base APK when the expected split APKs are missing.
 
-# Grab the SMAPI .zip installer on the official Server SMAPI Thailand (I'm not affiliated with them.)
+## Grab the SMAPI .zip installer on the official Server SMAPI Thailand
 https://discord.com/invite/ETtycvcJjr
 
 # 🌟 Key Features
