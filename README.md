@@ -1,11 +1,18 @@
 # SMAPI Launcher
 
-![image](https://github.com/user-attachments/assets/09a5f3fa-0b99-4aae-8f47-2de9009d5209)
+<div align="center">
+<img width="280" alt="Screenshot_20261109_125334" src="https://github.com/user-attachments/assets/6d27ae63-ef81-4270-8cdc-e64e426155b6" />
+</div>
 
 # Fork Notice
 This is a fork of [NRTnarathip/SMAPILoader](https://github.com/NRTnarathip/SMAPILoader). I am not affiliated with the original author.
 
-I removed the unnecessary Play Store split-APK check because it rejected my game installed outside the Play Store via Aurora Store with microG/FakeStore. The launcher now accepts the game package when installed and falls back to the base APK when the expected split APKs are missing.
+I removed the unnecessary Play Store split-APK check because it rejected my game installed outside the Play Store via Aurora Store with microG. 
+
+The launcher now accepts the game package when installed and falls back to the base APK when the expected split APKs are missing.
+
+# Grab the SMAPI .zip installer on the official Server SMAPI Thailand (I'm not affiliated with them.)
+https://discord.com/invite/ETtycvcJjr
 
 # 🌟 Key Features
 - Mod Manager
@@ -17,9 +24,6 @@ I removed the unnecessary Play Store split-APK check because it rejected my game
 
 # 🍕 Upcoming Feature
 - Save Import & Export
-
-# Discord Server SMAPI Thailand
-https://discord.com/invite/ETtycvcJjr
 
 # How To Install Wiki
 https://github.com/NRTnarathip/SMAPILoader/wiki/How-To-Install-SMAPI
