@@ -11,7 +11,7 @@ I removed the unnecessary Play Store split-APK check because it rejected my game
 
 The launcher now accepts the game package when installed and falls back to the base APK when the expected split APKs are missing.
 
-## Grab the SMAPI .zip installer on the official Server SMAPI Thailand
+## Grab the SMAPI .zip on the official Server SMAPI Thailand
 https://discord.com/invite/ETtycvcJjr
 
 # 🌟 Key Features
