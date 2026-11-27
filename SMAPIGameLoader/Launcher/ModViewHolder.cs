@@ -1,115 +1,136 @@
-﻿using Android.Content;
+using Android.Content;
+using Android.Content.Res;
 using Android.Graphics;
+using Android.Text;
+using Android.Util;
 using Android.Views;
 using Android.Widget;
 using AndroidX.AppCompat.Widget;
 using AndroidX.CardView.Widget;
 using AndroidX.RecyclerView.Widget;
 using System;
-using Android.Util;
+using Orientation = Android.Widget.Orientation;
 
 namespace SMAPIGameLoader.Launcher;
 
 internal class ModViewHolder : RecyclerView.ViewHolder
 {
+    const float DisabledAlpha = 0.45f;
+
+    private readonly View _content;
     private readonly TextView _name;
-    private readonly TextView _version;
+    private readonly TextView _detail;
     private readonly SwitchCompat _toggle;
-    private readonly Action<ModInfo> _onToggled;
     private readonly Action<ModInfo, View> _onClicked;
+    private readonly Action<ModInfo> _onToggled;
     private ModInfo? _mod;
-    private bool _binding;
 
-    private ModViewHolder(View root, TextView name, TextView version,
-                          SwitchCompat toggle, Action<ModInfo> onToggled,
-                          Action<ModInfo, View> onClicked) : base(root)
+    private ModViewHolder(View root, View content, TextView name, TextView detail,
+                          SwitchCompat toggle, Action<ModInfo, View> onClicked,
+                          Action<ModInfo> onToggled) : base(root)
     {
+        _content = content;
         _name = name;
-        _version = version;
+        _detail = detail;
         _toggle = toggle;
-        _onToggled = onToggled;
         _onClicked = onClicked;
-
-        _toggle.CheckedChange += (s, e) =>
-        {
-            if (_binding || _mod == null) return;
-            if (_mod.Enabled == e.IsChecked) return;   // ไม่มีการเปลี่ยนจริง ข้าม
-            _mod.Enabled = e.IsChecked;
-            _onToggled(_mod);
-
-            //assert
-            _toggle.Checked = _mod.Enabled;
-        };
+        _onToggled = onToggled;
 
         root.Click += (s, e) =>
         {
             if (_mod != null) _onClicked(_mod, root);
         };
+
+        // Bind ตั้ง Checked ให้ตรงกับ state จริงอยู่แล้ว ค่าที่ต่างจึงเป็นการกดของผู้ใช้เท่านั้น
+        toggle.CheckedChange += (s, e) =>
+        {
+            if (_mod != null && e.IsChecked != _mod.Enabled)
+                _onToggled(_mod);
+        };
     }
 
-    public static ModViewHolder Create(Context context,
-                                       Action<ModInfo> onToggled,
-                                       Action<ModInfo, View> onClicked)
+    public static ModViewHolder Create(Context context, Action<ModInfo, View> onClicked,
+                                       Action<ModInfo> onToggled)
     {
-        // Card ด้านนอก
         var card = new CardView(context)
         {
-            Radius = Ui.Dp(context, 12),
-            CardElevation = Ui.Dp(context, 4),
+            Radius = UI.Dp(context, 14),
+            CardElevation = 0,
             UseCompatPadding = true
         };
-        card.SetCardBackgroundColor(Color.ParseColor("#1A1D24"));
+        card.SetCardBackgroundColor(LauncherTheme.Parse(LauncherTheme.CardBackgroundHex));
+        int sideMargin = UI.Dp(context, 8);
         card.LayoutParameters = new RecyclerView.LayoutParams(
             ViewGroup.LayoutParams.MatchParent,
             ViewGroup.LayoutParams.WrapContent)
         {
-            BottomMargin = Ui.Dp(context, 12)
+            LeftMargin = sideMargin,
+            RightMargin = sideMargin
         };
 
-        // แถวภายใน card: ซ้าย (ชื่อ+path) | ขวา (version+switch)
+        // สองบรรทัดต่อการ์ด (ชื่อ / version · size · date) + switch เปิด/ปิด mod ที่ขวาสุด
         var row = new LinearLayout(context) { Orientation = Orientation.Horizontal };
         row.SetGravity(GravityFlags.CenterVertical);
-        row.SetPadding(Ui.Dp(context, 16), Ui.Dp(context, 14),
-                       Ui.Dp(context, 16), Ui.Dp(context, 14));
+        row.SetPadding(UI.Dp(context, 16), UI.Dp(context, 6),
+                       UI.Dp(context, 12), UI.Dp(context, 6));
         card.AddView(row);
 
-        // Left
-        var left = new LinearLayout(context) { Orientation = Orientation.Vertical };
-        left.SetGravity(GravityFlags.Left);
+        var column = new LinearLayout(context) { Orientation = Orientation.Vertical };
+        row.AddView(column, new LinearLayout.LayoutParams(
+            0, ViewGroup.LayoutParams.WrapContent, 1f));
 
         var name = new TextView(context);
-        name.SetTextSize(ComplexUnitType.Sp, 16);
-        name.SetTextColor(Color.White);
-        name.SetTypeface(null, TypefaceStyle.Bold);
+        name.SetTextSize(ComplexUnitType.Sp, 15);
+        name.SetTextColor(LauncherTheme.Parse(LauncherTheme.TextPrimaryHex));
+        name.SetTypeface(LauncherTheme.TitleTypeface, TypefaceStyle.Normal);
+        name.SetSingleLine(true);
+        name.Ellipsize = TextUtils.TruncateAt.End;
 
-        var version = new TextView(context);
-        version.SetTextSize(ComplexUnitType.Sp, 12);
-        version.SetTextColor(Color.ParseColor("#9AA0A6"));
-        version.LayoutParameters = new LinearLayout.LayoutParams(
+        var detail = new TextView(context);
+        detail.SetTextSize(ComplexUnitType.Sp, 12);
+        detail.SetTextColor(LauncherTheme.Parse(LauncherTheme.TextSecondaryHex));
+        detail.SetSingleLine(true);
+        detail.Ellipsize = TextUtils.TruncateAt.End;
+        detail.LayoutParameters = new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MatchParent,
             ViewGroup.LayoutParams.WrapContent)
-        { TopMargin = Ui.Dp(context, 2) };
+        { TopMargin = UI.Dp(context, 3) };
 
-        left.AddView(name);
-        left.AddView(version);
+        column.AddView(name);
+        column.AddView(detail);
 
-        // Right
         var toggle = new SwitchCompat(context);
-
-        row.AddView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, 1f));
+        toggle.ThumbTintList = TintStates(LauncherTheme.AccentHex, LauncherTheme.TextSecondaryHex);
+        toggle.TrackTintList = TintStates(LauncherTheme.StatusOkBackgroundHex,
+                                          LauncherTheme.SurfaceVariantHex);
+        toggle.LayoutParameters = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WrapContent,
+            ViewGroup.LayoutParams.WrapContent)
+        { LeftMargin = UI.Dp(context, 8) };
         row.AddView(toggle);
 
-        return new ModViewHolder(card, name, version, toggle, onToggled, onClicked);
+        return new ModViewHolder(card, column, name, detail, toggle, onClicked, onToggled);
     }
+
+    static ColorStateList TintStates(string checkedHex, string normalHex) =>
+        new(
+            new[] { new[] { Android.Resource.Attribute.StateChecked }, new int[0] },
+            new[]
+            {
+                LauncherTheme.Parse(checkedHex).ToArgb(),
+                LauncherTheme.Parse(normalHex).ToArgb(),
+            });
 
     public void Bind(ModInfo mod)
     {
         _mod = mod;
         _name.Text = mod.NameUIText;
-        _version.Text = mod.VersionUIText;
+        _detail.Text = $"{mod.VersionUIText} · {mod.SizeUIText} · {mod.DateUIText}";
+        _toggle.ContentDescription = $"Toggle {mod.NameUIText}";
 
-        _binding = true;
+        // ต้อง dim ที่ content ข้างใน ไม่ใช่ ItemView เพราะ DefaultItemAnimator
+        // จะ cross-fade แล้วเซ็ต itemView.Alpha กลับเป็น 1 ตอน NotifyItemChanged
+        _content.Alpha = mod.Enabled ? 1f : DisabledAlpha;
         _toggle.Checked = mod.Enabled;
-        _binding = false;
     }
 }

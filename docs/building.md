@@ -137,6 +137,39 @@ dotnet build SMAPIGameLoader\SMAPIGameLoader.csproj `
     -p:JavaSdkDirectory="C:\Program Files\Eclipse Adoptium\jdk-17.0.13.11-hotspot"
 ```
 
+### Windows helper script
+
+On Windows, `tools.cmd` auto-detects the Android SDK and JDK and wraps the common commands:
+
+```bat
+tools.cmd build dev        :: fast dev build (arm64, assemblies embedded, DEBUG on)
+tools.cmd build release    :: publish build
+tools.cmd install dev      :: install the existing Dev APK
+tools.cmd install release  :: install the existing Release APK
+tools.cmd dev              :: build Dev, then install it
+tools.cmd release          :: build Release, then install it
+```
+
+Extra arguments are forwarded to `dotnet build` (for example `tools.cmd build dev -v:n`).
+Set `ANDROID_SERIAL` when more than one device is attached.
+
+### Dev build behavior (intentional)
+
+**A Dev APK cannot start the game, and that is by design.** Tapping *Play Game* on a Dev build runs the
+cloner (game assets, assemblies, libs) and then stops with the toast *"Error can't start game on Debug
+Mode"*. The guard is the `#if DEBUG` block in `LauncherActivity.LaunchGameActivityInternal()`, placed
+right after `GameCloner.Setup()`. Use a **Release** build to test actual gameplay.
+
+### Dev build speed
+
+The Dev config sets `AndroidEnableAssemblyCompression=False` in the csproj: the assembly-store blob is
+then deflated once by APK packaging instead of being compressed internally first. The APK size is
+unchanged (~36 MB) and the store reader (`Xamarin.Android.AssemblyStore`, also used for the app's own
+APK) supports both compressed and uncompressed stores.
+
+Measured on this machine: full Dev build ~51 s, incremental Dev build after editing one file ~17 s
+(was ~22 s before this setting).
+
 ### Build output
 
 The signed APK will be at:
@@ -145,11 +178,15 @@ The signed APK will be at:
 SMAPIGameLoader/bin/Release/net9.0-android/abc.smapi.gameloader-Signed.apk
 ```
 
+(`Dev` builds land in `SMAPIGameLoader/bin/Dev/net9.0-android/` instead.)
+
 ## 6. Install on Device
 
 ```bash
 adb install -r SMAPIGameLoader/bin/Release/net9.0-android/abc.smapi.gameloader-Signed.apk
 ```
+
+Or, on Windows, `tools.cmd install release` (or `tools.cmd release` to build and install in one step).
 
 If upgrading over an existing install and the signing key differs:
 

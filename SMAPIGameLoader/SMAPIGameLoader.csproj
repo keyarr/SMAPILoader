@@ -1,5 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
+		<Configurations>Dev;Release</Configurations>
 		<TargetFramework>net9.0-android</TargetFramework>
 		<OutputType>Exe</OutputType>
 		<ApplicationId>com.companyname.SMAPIGameLoader</ApplicationId>
@@ -33,16 +34,37 @@
 		<AndroidEnableProfiledAot>False</AndroidEnableProfiledAot>
 		<RunAOTCompilation>False</RunAOTCompilation>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dev|AnyCPU'">
+		<!-- Dev คือ debug mode หลักของโปรเจกต์ จึงต้องมี DEBUG ให้โค้ด debug-only (เช่น McpDebugReceiver) ถูกคอมไพล์ด้วย -->
+		<DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
+		<AndroidPackageFormat>apk</AndroidPackageFormat>
+		<EmbedAssembliesIntoApk>True</EmbedAssembliesIntoApk>
+		<AndroidUseAssemblyStore>True</AndroidUseAssemblyStore>
+		<!-- ปิด compression ใน assembly store: ตอนแพ็ก APK zip deflate blob ตรง ๆ เร็วขึ้น ~4s (APK size เท่าเดิม)
+		     reader ที่อ่าน store เอง (Xamarin.Android.AssemblyStore) รองรับทั้ง compressed/uncompressed -->
+		<AndroidEnableAssemblyCompression>False</AndroidEnableAssemblyCompression>
+		<RuntimeIdentifiers>android-arm64</RuntimeIdentifiers>
+		<PublishTrimmed>False</PublishTrimmed>
+		<AndroidLinkMode>None</AndroidLinkMode>
+		<RunAOTCompilation>False</RunAOTCompilation>
+		<AndroidEnableProfiledAot>False</AndroidEnableProfiledAot>
+		<AndroidEnableLLVM>False</AndroidEnableLLVM>
+		<AndroidEnableMarshalMethods>False</AndroidEnableMarshalMethods>
+		<IsAotCompatible>False</IsAotCompatible>
 		<AndroidEnableSGenConcurrent>True</AndroidEnableSGenConcurrent>
+		<AndroidCreatePackagePerAbi>False</AndroidCreatePackagePerAbi>
 		<AndroidKeyStore>True</AndroidKeyStore>
 		<AndroidSigningStorePass>android</AndroidSigningStorePass>
 		<AndroidSigningKeyAlias>androiddebugkey</AndroidSigningKeyAlias>
 		<AndroidSigningKeyPass>android</AndroidSigningKeyPass>
-		<IsAotCompatible>False</IsAotCompatible>
-		<AndroidEnableProfiledAot>False</AndroidEnableProfiledAot>
-		<RunAOTCompilation>False</RunAOTCompilation>
-		<EmbedAssembliesIntoApk>False</EmbedAssembliesIntoApk>
+		<EnableNETAnalyzers>False</EnableNETAnalyzers>
+		<RunAnalyzers>False</RunAnalyzers>
+		<AnalysisLevel>none</AnalysisLevel>
+		<!-- pdb เก็บไว้ใน bin เพื่ออ่าน stack trace แต่ไม่ยัดเข้า APK
+		     (SDK จะเปิด AndroidIncludeDebugSymbols ให้เองเมื่อ Optimize ไม่ใช่ True) -->
+		<DebugSymbols>True</DebugSymbols>
+		<DebugType>portable</DebugType>
+		<Optimize>True</Optimize>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
@@ -96,7 +118,8 @@
 			<PackagePath>\</PackagePath>
 		</None>
 	</ItemGroup>
-	<Target Name="RestoreDotnetTools" BeforeTargets="Restore">
+	<!-- mgcb tools ไม่ได้ใช้ใน build ปกติ: ข้ามใน Dev เพื่อตัดเวลาออก -->
+	<Target Name="RestoreDotnetTools" BeforeTargets="Restore" Condition="'$(Configuration)' != 'Dev'">
 		<Message Text="Restoring dotnet tools" Importance="High" />
 		<Exec Command="dotnet tool restore" />
 	</Target>

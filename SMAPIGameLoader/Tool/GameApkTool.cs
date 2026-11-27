@@ -1,0 +1,118 @@
+﻿using Android.App;
+using Android.Content.PM;
+using System;
+using System.Linq;
+
+namespace SMAPIGameLoader;
+
+internal static class GameApkTool
+{
+    public const string GamePlayStorePackageName = "com.chucklefish.stardewvalley";
+    public const string GameGalaxyStorePackageName = "com.chucklefish.stardewvalleysamsung";
+    static bool IsGameFromPlayStore = false;
+    static bool IsGameFromGalaxyStore = false;
+    static PackageInfo _currentPackageInfo;
+    public static string GameInstalledFromStoreName => IsGameFromPlayStore ? "Play Store" : IsGameFromGalaxyStore ? "Galaxy Store" : "Unknown";
+
+    //init at first SDK
+    static GameApkTool()
+    {
+        Console.WriteLine("Initialize Stardew Apk Tool");
+        var playStore = ApkTool.GetPackageInfo(GamePlayStorePackageName);
+        var samsung = ApkTool.GetPackageInfo(GameGalaxyStorePackageName);
+
+        //select samsung first, better for debug, test app
+        if (samsung != null)
+        {
+            _currentPackageInfo = samsung;
+            IsGameFromGalaxyStore = true;
+            Console.WriteLine("Game Install From Galaxy Store");
+        }
+        else if (playStore != null)
+        {
+            _currentPackageInfo = playStore;
+            IsGameFromPlayStore = true;
+            Console.WriteLine("Game Install From Play Store");
+        }
+    }
+
+    public static PackageInfo CurrentPackageInfo => _currentPackageInfo;
+
+    public static bool IsInstalled => CurrentPackageInfo != null;
+
+    public static Android.Content.Context GetContext => Application.Context;
+    public static string? BaseApkPath => CurrentPackageInfo?.ApplicationInfo?.PublicSourceDir;
+    public static string? Arm64ApkPath
+    {
+        get
+        {
+            try
+            {
+                if (CurrentPackageInfo == null)
+                    return null;
+
+                if (IsGameFromPlayStore)
+                    return CurrentPackageInfo.ApplicationInfo?.SplitSourceDirs?.FirstOrDefault(path => path.Contains("split_config.arm64"))
+                        ?? BaseApkPath;
+
+                // Samsung: assemblies are in the base APK
+                return BaseApkPath;
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogTool.Show(ex, "Error try to get Arm64ApkPath");
+                return null;
+            }
+        }
+    }
+
+    public static string? ContentApkPath
+    {
+        get
+        {
+            try
+            {
+                if (CurrentPackageInfo == null)
+                    return null;
+
+                //play store
+                if (IsGameFromPlayStore)
+                    return CurrentPackageInfo.ApplicationInfo?.SplitSourceDirs?.FirstOrDefault(path => path.Contains("split_content"))
+                        ?? BaseApkPath;
+
+                //samsung
+                return BaseApkPath;
+            }
+            catch (Exception ex)
+            {
+                ErrorDialogTool.Show(ex, "Error try to get ContentApkPath");
+                return null;
+            }
+        }
+    }
+
+    public static Version SupportMinimumGameVersion
+    {
+        get
+        {
+            return new(1, 6, 15, 3);
+        }
+    }
+
+    public static Version CurrentGameVersion
+    {
+        get
+        {
+            try
+            {
+                return new Version(CurrentPackageInfo.VersionName);
+            }
+            catch (Exception ex)
+            {
+                ToastNotifyTool.Notify(ex.ToString());
+                return new Version(0, 0, 0, 0);
+            }
+        }
+    }
+    public static bool IsGameVersionSupport => CurrentGameVersion >= SupportMinimumGameVersion;
+}

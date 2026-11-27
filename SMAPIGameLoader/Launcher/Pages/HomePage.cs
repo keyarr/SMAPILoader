@@ -1,7 +1,5 @@
-﻿
 using Android.Content;
 using Android.Graphics;
-using Android.Graphics.Drawables;
 using Android.Util;
 using Android.Views;
 using Android.Widget;
@@ -11,97 +9,121 @@ namespace SMAPIGameLoader.Launcher.Pages;
 
 public class HomePage : LinearLayout
 {
-    public Button PlayButton { get; }
-    public SMAPIInfoCard SmapiCard { get; }
-    public GameInfoCard GameInfoCard { get; }
+    enum PlayGameState
+    {
+        GameNotInstalled,
+        GameInstalled,
+        GameInstalledButNotSupport,
+    }
 
+    readonly PrimaryActionButton _playGameButton;
 
     public HomePage(Context context) : base(context)
     {
         Orientation = Orientation.Vertical;
-        SetPadding(0, 0, 0, Ui.Dp(context, 16));
+        SetBackgroundColor(LauncherTheme.Parse(LauncherTheme.BackgroundHex));
         LayoutParameters = new ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MatchParent,
             ViewGroup.LayoutParams.MatchParent);
 
-        // ===== Header =====
-        var header = new TextView(context) { Text = "SMAPI Launcher" };
-        header.SetTextSize(ComplexUnitType.Sp, 20);
-        header.SetTextColor(Color.White);
-        header.SetTypeface(null, TypefaceStyle.Bold);
-        header.SetPadding(Ui.Dp(context, 20), Ui.Dp(context, 48), Ui.Dp(context, 20), Ui.Dp(context, 16));
-        header.Elevation = Ui.Dp(context, 6);
-        AddView(header, new LayoutParams(
+        string headerTitle = "Home";
+        if (ApkTool.IsDebugMode) headerTitle += " (Debug Mode)";
+        AddView(new PageHeader(context, headerTitle), new LayoutParams(
             ViewGroup.LayoutParams.MatchParent,
             ViewGroup.LayoutParams.WrapContent));
 
-        // ===== Body =====
+        var body = CreateBody(context);
+        var scroll = new ScrollView(context) { FillViewport = false };
+        scroll.AddView(body, new ScrollView.LayoutParams(
+            ViewGroup.LayoutParams.MatchParent,
+            ViewGroup.LayoutParams.WrapContent));
+        AddView(scroll, new LayoutParams(
+            ViewGroup.LayoutParams.MatchParent, 0, 1f));
+
+        var cardLayoutParams = new LayoutParams(
+            ViewGroup.LayoutParams.MatchParent,
+            ViewGroup.LayoutParams.WrapContent)
+        {
+            BottomMargin = UI.Dp(context, 12)
+        };
+
+        body.AddView(new GameInfoCard(context), cardLayoutParams);
+        body.AddView(new SMAPIInfoCard(context), cardLayoutParams);
+
+        _playGameButton = CreatePrimaryButton(context, GetPlayGameButtonText());
+        _playGameButton.Click += OnPlayButtonClick;
+        body.AddView(_playGameButton);
+    }
+
+    PlayGameState GetPlayGameState()
+    {
+        if (GameApkTool.IsInstalled is false)
+            return PlayGameState.GameNotInstalled;
+        if (GameApkTool.IsGameVersionSupport is false)
+            return PlayGameState.GameInstalledButNotSupport;
+        return PlayGameState.GameInstalled;
+    }
+
+    string GetPlayGameButtonText()
+    {
+        switch (GetPlayGameState())
+        {
+            case PlayGameState.GameNotInstalled:
+                return "Download Game From Store";
+            case PlayGameState.GameInstalledButNotSupport:
+                return "Please Update Game";
+            case PlayGameState.GameInstalled:
+                return "Play Game";
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    static LinearLayout CreateBody(Context context)
+    {
         var body = new LinearLayout(context) { Orientation = Orientation.Vertical };
-        body.SetPadding(Ui.Dp(context, 16), Ui.Dp(context, 16), Ui.Dp(context, 16), 0);
-        AddView(body, new LayoutParams(
-            ViewGroup.LayoutParams.MatchParent,
-            ViewGroup.LayoutParams.WrapContent));
-
-        // game is ready!
-
-
-        var cardLayoutParam = new LayoutParams(
-            ViewGroup.LayoutParams.MatchParent,
-            ViewGroup.LayoutParams.WrapContent)
-        {
-            BottomMargin = Ui.Dp(context, 16)
-        };
-
-        GameInfoCard = new(context);
-        body.AddView(GameInfoCard, cardLayoutParam);
-
-        SmapiCard = new SMAPIInfoCard(context);
-        body.AddView(SmapiCard, cardLayoutParam);
-
-        PlayButton = CreateButton(context, "Launch Game", "#1565C0");
-        PlayButton.Click += PlayButton_Click;
-        body.AddView(PlayButton);
+        body.SetPadding(
+            UI.Dp(context, 16), UI.Dp(context, 16),
+            UI.Dp(context, 16), UI.Dp(context, 20));
+        return body;
     }
 
-    // ===== Helper =====
-    static Button CreateButton(Context context, string text, string colorHex)
+    static PrimaryActionButton CreatePrimaryButton(Context context, string text)
     {
-        var btn = new Button(context) { Text = text };
-        btn.SetAllCaps(false);
-        btn.SetTextColor(Color.White);
-        btn.SetTextSize(ComplexUnitType.Sp, 16);
-        btn.SetTypeface(null, TypefaceStyle.Bold);
-
-        var bg = new GradientDrawable();
-        bg.SetShape(ShapeType.Rectangle);
-        bg.SetCornerRadius(Ui.Dp(context, 12));
-        bg.SetColor(Color.ParseColor(colorHex));
-        btn.Background = bg;
-
-        btn.SetPadding(0, Ui.Dp(context, 14), 0, Ui.Dp(context, 14));
-        var lp = new LayoutParams(
+        var button = new PrimaryActionButton(context, text, Resource.Drawable.ic_play);
+        button.LayoutParameters = new LayoutParams(
             ViewGroup.LayoutParams.MatchParent,
             ViewGroup.LayoutParams.WrapContent)
         {
-            BottomMargin = Ui.Dp(context, 12)
+            TopMargin = UI.Dp(context, 8),
+            BottomMargin = UI.Dp(context, 8)
         };
-        btn.LayoutParameters = lp;
-        return btn;
+        return button;
     }
 
-
-
-    private void InstallSMAPIButton_Click(object sender, EventArgs e)
+    void OnPlayButtonClick(object sender, EventArgs e)
     {
-        SMAPIInstaller.OnInstalledSMAPI = () =>
+        if (GameApkTool.IsInstalled is false)
         {
-            SmapiCard.Refresh();
-        };
-        SMAPIInstaller.OnClickInstallSMAPIZip(sender, e);
-    }
+            OpenPlayStore(Context, GameApkTool.GamePlayStorePackageName);
+            return;
+        }
 
-    private void PlayButton_Click(object sender, System.EventArgs e)
-    {
         LauncherActivity.Instance.OnClickStartGame();
+    }
+
+    public static void OpenPlayStore(Context context, string packageName)
+    {
+        var uri = Android.Net.Uri.Parse($"https://play.google.com/store/apps/details?id={packageName}");
+        var intent = new Intent(Intent.ActionView, uri);
+        intent.AddFlags(ActivityFlags.NewTask);
+        try
+        {
+            context.StartActivity(intent);
+        }
+        catch (ActivityNotFoundException e)
+        {
+            ErrorDialogTool.Show(e);
+        }
     }
 }
