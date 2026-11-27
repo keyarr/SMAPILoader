@@ -75,10 +75,7 @@ internal sealed class ContactPage : LinearLayout
         return card;
     }
 
-    /// <summary>ไอคอน GitHub เป็นสีขาว/ดำตามความสว่างของธีม</summary>
-    static int GithubIcon => LauncherTheme.IsLightTheme
-        ? Resource.Drawable.ic_contact_github_ink
-        : Resource.Drawable.ic_contact_github;
+    static int GithubIcon => Resource.Drawable.ic_contact_github;
 
     static CardView CreateLinksCard(Context context)
     {
